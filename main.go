@@ -20,7 +20,8 @@ func generateRandomElements(size int) []int {
 	rand.Seed(time.Now().UnixNano())
 	data := make([]int, size)
 	for i := range data {
-		data[i] = rand.Intn(1_000_000_000)
+		// убрал ограничение Intn(1_000_000_000) теперь rand.Int() — полный диапазон положительных int
+		data[i] = rand.Int()
 	}
 	return data
 }
@@ -39,7 +40,7 @@ func maximum(data []int) int {
 	return max
 }
 
-// maxChunks ищет максимум в слайсе, разбивая его на CHUNKS частей и используя горутины
+// maxChunks ищет максимум в слайсе разбивая его на CHUNKS частей и используя горутины
 func maxChunks(data []int) int {
 	if len(data) == 0 {
 		return 0
@@ -51,15 +52,19 @@ func maxChunks(data []int) int {
 
 	for i := 0; i < CHUNKS; i++ {
 		wg.Add(1)
-		go func(i int) {
+
+		// передаю готовый слайс в горутину а не только индекс i
+		start := i * chunkSize
+		end := start + chunkSize
+		if i == CHUNKS-1 {
+			end = len(data)
+		}
+		chunk := data[start:end]
+
+		go func(i int, chunk []int) {
 			defer wg.Done()
-			start := i * chunkSize
-			end := start + chunkSize
-			if i == CHUNKS-1 {
-				end = len(data)
-			}
-			results[i] = maximum(data[start:end])
-		}(i)
+			results[i] = maximum(chunk)
+		}(i, chunk)
 	}
 
 	wg.Wait()
